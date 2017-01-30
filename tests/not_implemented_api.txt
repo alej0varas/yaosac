@@ -1,0 +1,22 @@
+Index:
+[x] POST Create notification
+  - [x] by Segment
+  - [x] by Filter
+  - [x] by Device
+[ ] DELETE Cancel notification
+ 
+ GET View apps
+ GET View an app
+ POST Create an app
+ PUT Update an app
+ GET View devices
+ GET View device
+ POST Add a device
+ PUT Edit device
+ POST New session
+ POST New purchase
+ POST Increment session length
+ POST CSV export
+ GET View notification
+ GET View notifications
+ PUT Track open
