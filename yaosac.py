@@ -42,8 +42,7 @@ class Client:
 
     @app_auth_key.setter
     def app_auth_key(self, value):
-        if getattr(self, '_app_auth_key', None) is None:
-            setattr(self, '_app_auth_key', value)
+        setattr(self, '_app_auth_key', value)
 
     @property
     def app_id(self):
@@ -53,8 +52,7 @@ class Client:
 
     @app_id.setter
     def app_id(self, value):
-        if getattr(self, '_app_id', None) is None:
-            setattr(self, '_app_id', value)
+        setattr(self, '_app_id', value)
 
     @property
     def user_auth_key(self):
@@ -64,8 +62,7 @@ class Client:
 
     @user_auth_key.setter
     def user_auth_key(self, value):
-        if getattr(self, '_user_auth_key', None) is None:
-            setattr(self, '_user_auth_key', value)
+        setattr(self, '_user_auth_key', value)
 
     def _get_headers(self, auth_name=None):
         headers = {'content-type': 'application/json'}

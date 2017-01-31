@@ -54,29 +54,27 @@ class ClientInternalTestCase(unittest.TestCase):
         self.assertEqual(result, APP_ID)
 
     def test_auth_key_properties__setter(self):
-        _orig_auth_key = yaosac.client._app_auth_key
-        del(yaosac.client._app_auth_key)
+        _orig = yaosac.client.app_auth_key
+
         value = 'new-app'
 
         yaosac.client.app_auth_key = value
 
         self.assertEqual(yaosac.client._app_auth_key, value)
 
-        del(yaosac.client._user_auth_key)
         value = 'new-user'
 
         yaosac.client.user_auth_key = value
 
         self.assertEqual(yaosac.client._user_auth_key, value)
 
-        del(yaosac.client._app_id)
         value = 'new-app-id'
 
         yaosac.client.app_id = value
 
         self.assertEqual(yaosac.client._app_id, value)
 
-        yaosac.client._app_auth_key = _orig_auth_key
+        yaosac.client.app_auth_key = _orig
 
     def test_get_header(self):
         result = yaosac.client._get_headers()
