@@ -3,20 +3,20 @@ Index:
   - [x] by Segment
   - [x] by Filter
   - [x] by Device
-[ ] DELETE Cancel notification
+[x] DELETE Cancel notification
  
- GET View apps
- GET View an app
- POST Create an app
- PUT Update an app
- GET View devices
- GET View device
- POST Add a device
- PUT Edit device
- POST New session
- POST New purchase
- POST Increment session length
- POST CSV export
- GET View notification
- GET View notifications
- PUT Track open
+[x] GET View apps
+[x] GET View an app
+[x] POST Create an app
+[x] PUT Update an app
+[x] GET View devices
+[x] GET View device
+[x] POST Add a device
+[x] PUT Edit device
+[x] POST New session
+[x] POST New purchase
+[x] POST Increment session length
+[x] POST CSV export
+[x] GET View notification
+[x] GET View notifications
+[x] PUT Track open
