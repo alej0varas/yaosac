@@ -7,10 +7,10 @@ README = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read()
 
 setup(
     name="yaosac",
-    version=__import__('version', 'yaosac').__version__,
+    version=__import__('yaosac').__version__,
     author="Alexandre Varas",
     author_email="alej0varas@gmail.com",
-    py_modules=['yaosac', 'version'],
+    py_modules=['yaosac', ],
     include_package_data=True,
     license='GNU Library or Lesser General Public License (LGPL)',
     description="Yet another OneSignal API Client",
