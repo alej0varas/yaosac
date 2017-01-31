@@ -17,8 +17,7 @@ Usage
 ::
 
    import yaosac
-   client = yaosac.Client()
-   client.create_notification(player_ids)
+   yaosac.client.create_notification(player_ids)
 
 Contribution/Testing
 --------------------
