@@ -6,82 +6,77 @@ import requests
 import yaosac
 
 
+APP_AUTH_KEY = 'app-test-key'
+APP_ID = 'app-test-id'
+USER_AUTH_KEY = 'user-test-key'
+os.environ['OS_APP_AUTH_KEY'] = APP_AUTH_KEY
+os.environ['OS_APP_ID'] = APP_ID
+os.environ['OS_USER_AUTH_KEY'] = USER_AUTH_KEY
+
+
 class ClientInternalTestCase(unittest.TestCase):
     key_name = 'OS_TEST_KEY'
-    attr_name = 'test_key'
-
-    def setUp(self):
-        yaosac.client = yaosac.Client()
+    attr_name = '_test_key'
 
     def test_check_an_auth_key(self):
         """Check if an auth key is set"""
-        key = 'a-key'
-        other_key = 'other-key'
-        os.environ[self.key_name] = key
+        value = 'a-value'
+        os.environ[self.key_name] = value
 
         yaosac.client._check_an_auth_key(self.key_name)
 
-        self.assertEqual(getattr(yaosac.client, '_' + self.attr_name), key)
+        self.assertEqual(getattr(yaosac.client, self.attr_name), value)
 
         del(os.environ[self.key_name])
 
     def test_check_an_auth_key__raises_improperlyconfigured(self):
         """If the auth key is not found raise an exception"""
+        key_name = 'DOES_NOT_EXIST'
         with self.assertRaises(Exception) as context:
-            yaosac.client._check_an_auth_key(self.key_name)
+            yaosac.client._check_an_auth_key(key_name)
 
-        self.assertIn(self.key_name, context.exception.args[0])
-
-    def test_set_an_auth_key(self):
-        value = 'a-value'
-
-        yaosac.client._set_an_auth_key(self.key_name, value)
-
-        self.assertEqual(getattr(yaosac.client, '_' + self.attr_name), value)
+        self.assertIn(key_name, context.exception.args[0])
 
     def test_auth_key_properties(self):
-        value = 'a-value-app'
-        os.environ['OS_APP_AUTH_KEY'] = value
-
         result = yaosac.client.app_auth_key
 
-        self.assertEqual(yaosac.client._app_auth_key, value)
-        self.assertEqual(result, value)
-
-        value = 'a-value-user'
-        os.environ['OS_USER_AUTH_KEY'] = value
+        self.assertEqual(yaosac.client._app_auth_key, APP_AUTH_KEY)
+        self.assertEqual(result, APP_AUTH_KEY)
 
         result = yaosac.client.user_auth_key
 
-        self.assertEqual(yaosac.client._user_auth_key, value)
-        self.assertEqual(result, value)
-
-        value = 'a-value-app-id'
-        os.environ['OS_APP_ID'] = value
+        self.assertEqual(yaosac.client._user_auth_key, USER_AUTH_KEY)
+        self.assertEqual(result, USER_AUTH_KEY)
 
         result = yaosac.client.app_id
 
-        self.assertEqual(yaosac.client._app_id, value)
-        self.assertEqual(result, value)
+        self.assertEqual(yaosac.client._app_id, APP_ID)
+        self.assertEqual(result, APP_ID)
 
     def test_auth_key_properties__setter(self):
-        value = 'a-value-app'
+        _orig_auth_key = yaosac.client._app_auth_key
+        del(yaosac.client._app_auth_key)
+        value = 'new-app'
 
         yaosac.client.app_auth_key = value
 
         self.assertEqual(yaosac.client._app_auth_key, value)
 
-        value = 'a-value-user'
+        del(yaosac.client._user_auth_key)
+        value = 'new-user'
 
         yaosac.client.user_auth_key = value
 
         self.assertEqual(yaosac.client._user_auth_key, value)
 
-        value = 'a-value-app-id'
+        del(yaosac.client._app_id)
+        value = 'new-app-id'
 
         yaosac.client.app_id = value
 
         self.assertEqual(yaosac.client._app_id, value)
+
+        yaosac.client._app_auth_key = _orig_auth_key
 
     def test_get_header(self):
         result = yaosac.client._get_headers()
@@ -95,23 +90,45 @@ class ClientInternalTestCase(unittest.TestCase):
         
         self.assertIn(value, result['authorization'])
 
-        value = 'a-value-app'
-        yaosac.client._set_an_auth_key('APP_AUTH_KEY', value)
-
-        result = yaosac.client._get_headers()
+        result = yaosac.client._get_headers('app')
         
-        self.assertIn(value, result['authorization'])
+        self.assertIn(APP_AUTH_KEY, result['authorization'])
+
+    def test_make_request(self):
+        url = 'bleh'
+        method = 'put'
+
+        with mock.patch('requests.' + method) as mock_method:
+            with mock.patch('yaosac.Client._get_headers') as mock_get_headers:
+                mock_headers = {'mock': 'headers'}
+                mock_get_headers.return_value = mock_headers
+
+                # Basic
+                yaosac.client._make_request(url, method)
+
+                mock_method.assert_called_once_with(
+                    url, data=None, headers=mock_headers)
+
+                # With data
+                mock_method.reset_mock()
+                mock_get_headers.reset_mock()
+                yaosac.client._make_request(url, method, data={})
+
+                mock_method.assert_called_once_with(
+                    url, data={}, headers=mock_headers)
+
+                # With auth
+                mock_method.reset_mock()
+                mock_get_headers.reset_mock()
+                auth = 'auth'
+                yaosac.client._make_request(url, method, auth=auth)
+                mock_method.assert_called_once_with(
+                    url, data=None, headers=mock_headers)
+                mock_get_headers.assert_called_once_with(auth)
 
 
 class ClientAPIMEthodsTestCase(unittest.TestCase):
     def setUp(self):
-        self.app_auth_key = 'app-test-key'
-        self.app_id = 'app-test-id'
-        self.user_auth_key = 'user-test-key'
-        os.environ['OS_APP_AUTH_KEY'] = self.app_auth_key
-        os.environ['OS_APP_ID'] = self.app_id
-        os.environ['OS_USER_AUTH_KEY'] = self.user_auth_key
-        self.client = yaosac.Client()
         requests.get = mock.Mock()
         requests.post = mock.Mock()
         requests.put = mock.Mock()
@@ -133,82 +150,79 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         kwargs = {'what': 'ever'}
         contents = {'en': 'Bla'}
 
-        response = self.client.create_notification(contents, **kwargs)
+        response = yaosac.client.create_notification(contents, **kwargs)
 
         self.assertEqual(requests.post.call_count, 1)
-        self.assertIn('contents', requests.post.call_args[0][0])
-        self.assertIn('app_id', requests.post.call_args[0][0])
-        self.assertIn('what', requests.post.call_args[0][0])
-        self.assertIn('headers', requests.post.call_args[1])
-        self.assertIn(self.app_auth_key,
+        self.assertIn('app_id', requests.post.call_args[1]['data'])
+        self.assertIn('contents', requests.post.call_args[1]['data'])
+        self.assertIn('what', requests.post.call_args[1]['data'])
+        self.assertIn(APP_AUTH_KEY,
                       requests.post.call_args[1]['headers']['authorization'])
         self.assertIsNotNone(response)
 
     def test_cancel_notification(self):
-        id = 'notification-id'
-        app_id = ':P'
+        notification_id = 'notification-id'
 
-        response = self.client.cancel_notification(id, app_id)
+        response = yaosac.client.cancel_notification(notification_id)
 
         self.assertEqual(requests.delete.call_count, 1)
-        self.assertIn(id, requests.delete.call_args[0][0])
-        self.assertIn(app_id, requests.delete.call_args[0][0])
+        self.assertIn(notification_id, requests.delete.call_args[0][0])
+        self.assertIn(APP_ID, requests.delete.call_args[0][0])
         self.assertIn('headers', requests.delete.call_args[1])
-        self.assertIn(self.app_auth_key,
+        self.assertIn(APP_AUTH_KEY,
                       requests.delete.call_args[1]['headers']['authorization'])
         self.assertIsNotNone(response)
 
     def test_view_apps(self):
-        response = self.client.view_apps()
+        response = yaosac.client.view_apps()
 
         self.assertIn('apps', requests.get.call_args[0][0])
-        self.assertIn(self.user_auth_key,
+        self.assertIn(USER_AUTH_KEY,
                       requests.get.call_args[1]['headers']['authorization'])
         self.assertIsNotNone(response)
 
     def test_view_an_app(self):
         app_id = 'an-id'
-        response = self.client.view_an_app(app_id)
+        response = yaosac.client.view_an_app(app_id)
 
         self.assertIn('apps', requests.get.call_args[0][0])
         self.assertIn(app_id, requests.get.call_args[0][0])
-        self.assertIn(self.user_auth_key,
+        self.assertIn(USER_AUTH_KEY,
                       requests.get.call_args[1]['headers']['authorization'])
         self.assertIsNotNone(response)
 
     def test_create_an_app(self):
         payload = {'what': 'ever'}
-        response = self.client.create_an_app(**payload)
+        response = yaosac.client.create_an_app(**payload)
 
         self.assertIn('apps', requests.post.call_args[0][0])
         self.assertEqual(payload, requests.post.call_args[1]['data'])
-        self.assertIn(self.user_auth_key,
+        self.assertIn(USER_AUTH_KEY,
                       requests.post.call_args[1]['headers']['authorization'])
 
     def test_update_an_app(self):
         payload = {'what': 'ever'}
-        app_id = ';P'
-        response = self.client.update_an_app(app_id, **payload)
+        response = yaosac.client.update_an_app(**payload)
 
-        self.assertIn(app_id, requests.put.call_args[0][0])
+        self.assertIn(APP_ID, requests.put.call_args[0][0])
         self.assertIn('apps', requests.put.call_args[0][0])
         self.assertEqual(payload, requests.put.call_args[1]['data'])
-        self.assertIn(self.user_auth_key,
+        self.assertIn(USER_AUTH_KEY,
                       requests.put.call_args[1]['headers']['authorization'])
 
     def test_view_devices(self):
-        response = self.client.view_devices()
+        response = yaosac.client.view_devices()
 
         self.assertIn('players', requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
-        self.assertIn(self.app_id, requests.get.call_args[0][0])
-        self.assertIn(self.app_auth_key,
+        self.assertIn(APP_ID, requests.get.call_args[0][0])
+        self.assertIn(APP_AUTH_KEY,
                       requests.get.call_args[1]['headers']['authorization'])
 
         # with limit
         requests.get.reset_mock()
         limit = 69
-        response = self.client.view_devices(limit=limit)
+        response = yaosac.client.view_devices(limit=limit)
 
         self.assertIn('limit=', requests.get.call_args[0][0])
         self.assertIn(str(limit), requests.get.call_args[0][0])
@@ -216,28 +230,28 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         # with offset
         requests.get.reset_mock()
         offset = 420
-        response = self.client.view_devices(offset=offset)
+        response = yaosac.client.view_devices(offset=offset)
 
         self.assertIn('offset=', requests.get.call_args[0][0])
         self.assertIn(str(offset), requests.get.call_args[0][0])
 
     def test_view_device(self):
         device_id = 'my-phone'
-        response = self.client.view_device(device_id)
+        response = yaosac.client.view_device(device_id)
 
         self.assertIn('players', requests.get.call_args[0][0])
         self.assertIn(device_id, requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
-        self.assertIn(self.app_id, requests.get.call_args[0][0])
+        self.assertIn(APP_ID, requests.get.call_args[0][0])
         self.assertNotIn('authorization', requests.get.call_args[1]['headers'])
 
     def test_add_a_device(self):
         payload = {'read': 'the', 'docs': 1}
-        response = self.client.add_a_device(**payload)
+        response = yaosac.client.add_a_device(**payload)
 
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('app_id', requests.post.call_args[1]['data'])
-        self.assertEqual(self.app_id,
+        self.assertEqual(APP_ID,
                          requests.post.call_args[1]['data']['app_id'])
         for key, value in payload.items():
             self.assertIn(key, requests.post.call_args[1]['data'])
@@ -247,12 +261,12 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
     def test_edit_device(self):
         device_id = 'my-phone'
         payload = {'read': 'the', 'docs': 1}
-        response = self.client.edit_device(device_id, **payload)
+        response = yaosac.client.edit_device(device_id, **payload)
 
         self.assertIn('players', requests.put.call_args[0][0])
         self.assertIn(device_id, requests.put.call_args[0][0])
         self.assertIn('app_id', requests.put.call_args[1]['data'])
-        self.assertEqual(self.app_id,
+        self.assertEqual(APP_ID,
                          requests.put.call_args[1]['data']['app_id'])
         for key, value in payload.items():
             self.assertIn(key, requests.put.call_args[1]['data'])
@@ -262,7 +276,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
     def test_edit_device(self):
         device_id = 'my-phone'
         payload = {'read': 'the', 'docs': 1}
-        response = self.client.new_session(device_id, **payload)
+        response = yaosac.client.new_session(device_id, **payload)
 
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_session', requests.post.call_args[0][0])
@@ -273,7 +287,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
     def test_new_purchase(self):
         device_id = 'my-phone'
         payload = {'read': 'the', 'docs': 1}
-        response = self.client.new_purchase(device_id, **payload)
+        response = yaosac.client.new_purchase(device_id, **payload)
 
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_purchase', requests.post.call_args[0][0])
@@ -286,7 +300,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         active_time = 10
         expected_payload = {'state': 'ping', 'active_time': active_time}
 
-        response = self.client.increment_session_length(device_id, active_time)
+        response = yaosac.client.increment_session_length(device_id, active_time)
 
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_focus', requests.post.call_args[0][0])
@@ -295,61 +309,61 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertNotIn('authorization', requests.post.call_args[1]['headers'])
 
     def test_csv_export(self):
-        response = self.client.csv_export()
+        response = yaosac.client.csv_export()
 
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('csv_export', requests.post.call_args[0][0])
         self.assertIn('app_id=', requests.post.call_args[0][0])
-        self.assertIn(self.app_id, requests.post.call_args[0][0])
-        self.assertIn(self.app_auth_key,
+        self.assertIn(APP_ID, requests.post.call_args[0][0])
+        self.assertIn(APP_AUTH_KEY,
                       requests.post.call_args[1]['headers']['authorization'])
 
 
         # Extra fields
         # location
         requests.post.reset_mock()
-        response = self.client.csv_export(location=True)
+        response = yaosac.client.csv_export(location=True)
 
         self.assertIn('location',
                       requests.post.call_args[1]['data']['extra_fields'])
         # country
         requests.post.reset_mock()
-        response = self.client.csv_export(country=True)
+        response = yaosac.client.csv_export(country=True)
 
         self.assertIn('country',
                       requests.post.call_args[1]['data']['extra_fields'])
 
         # rooted
         requests.post.reset_mock()
-        response = self.client.csv_export(rooted=True)
+        response = yaosac.client.csv_export(rooted=True)
 
         self.assertIn('rooted',
                       requests.post.call_args[1]['data']['extra_fields'])
 
     def test_view_notification(self):
         notification_id = 'an-push'
-        response = self.client.view_notification(notification_id)
+        response = yaosac.client.view_notification(notification_id)
 
         self.assertIn('notifications', requests.get.call_args[0][0])
         self.assertIn(notification_id, requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
-        self.assertIn(self.app_id, requests.get.call_args[0][0])
-        self.assertIn(self.user_auth_key,
+        self.assertIn(APP_ID, requests.get.call_args[0][0])
+        self.assertIn(USER_AUTH_KEY,
                       requests.get.call_args[1]['headers']['authorization'])
 
     def test_view_notifications(self):
-        response = self.client.view_notifications()
+        response = yaosac.client.view_notifications()
 
         self.assertIn('notifications', requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
-        self.assertIn(self.app_id, requests.get.call_args[0][0])
-        self.assertIn(self.app_auth_key,
+        self.assertIn(APP_ID, requests.get.call_args[0][0])
+        self.assertIn(APP_AUTH_KEY,
                       requests.get.call_args[1]['headers']['authorization'])
 
         # with limit
         requests.get.reset_mock()
         limit = 69
-        response = self.client.view_notifications(limit=limit)
+        response = yaosac.client.view_notifications(limit=limit)
 
         self.assertIn('limit=', requests.get.call_args[0][0])
         self.assertIn(str(limit), requests.get.call_args[0][0])
@@ -357,19 +371,19 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         # with offset
         requests.get.reset_mock()
         offset = 420
-        response = self.client.view_notifications(offset=offset)
+        response = yaosac.client.view_notifications(offset=offset)
 
         self.assertIn('offset=', requests.get.call_args[0][0])
         self.assertIn(str(offset), requests.get.call_args[0][0])
 
     def test_track_open(self):
         notification_id = 'a-push'
-        response = self.client.track_open(notification_id)
+        response = yaosac.client.track_open(notification_id)
 
         self.assertIn('notifications', requests.put.call_args[0][0])
         self.assertIn(notification_id, requests.put.call_args[0][0])
         self.assertIn('app_id', requests.put.call_args[1]['data'])
-        self.assertIn(self.app_id, requests.put.call_args[1]['data']['app_id'])
+        self.assertIn(APP_ID, requests.put.call_args[1]['data']['app_id'])
         self.assertIn('opened', requests.put.call_args[1]['data'])
         self.assertTrue(requests.put.call_args[1]['data']['opened'])
         self.assertNotIn('authorization', requests.put.call_args[1]['headers'])

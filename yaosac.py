@@ -26,17 +26,13 @@ class Client:
 
     def _check_an_auth_key(self, key_name):
         value = os.environ.get(key_name, None)
-        attr_name = (key_name[3:] if key_name.startswith('OS_') else
-                     key_name).lower()
+        attr_name = key_name[2:].lower()
         if value is None:
-            raise ImproperlyConfigured(("An Auth Key missing. You can set "
+            raise ImproperlyConfigured(("An Auth Key is missing. You can set "
                                         "it through the '%s' environment "
-                                        "variable or the '%s' "
-                                        "argument." % (key_name, attr_name)))
-        self._set_an_auth_key(attr_name, value)
-
-    def _set_an_auth_key(self, attr_name, value):
-        setattr(self, '_' + attr_name.lower(), value)
+                                        "variable or the '%s' argument."
+                                        % (key_name, attr_name)))
+        setattr(self, attr_name, value)
 
     @property
     def app_auth_key(self):
@@ -47,7 +43,7 @@ class Client:
     @app_auth_key.setter
     def app_auth_key(self, value):
         if getattr(self, '_app_auth_key', None) is None:
-            self._set_an_auth_key('OS_APP_AUTH_KEY', value)
+            setattr(self, '_app_auth_key', value)
 
     @property
     def app_id(self):
@@ -58,7 +54,7 @@ class Client:
     @app_id.setter
     def app_id(self, value):
         if getattr(self, '_app_id', None) is None:
-            self._set_an_auth_key('OS_APP_ID', value)
+            setattr(self, '_app_id', value)
 
     @property
     def user_auth_key(self):
@@ -69,7 +65,7 @@ class Client:
     @user_auth_key.setter
     def user_auth_key(self, value):
         if getattr(self, '_user_auth_key', None) is None:
-            self._set_an_auth_key('OS_USER_AUTH_KEY', value)
+            setattr(self, '_user_auth_key', value)
 
     def _get_headers(self, auth_name=None):
         headers = {'content-type': 'application/json'}
@@ -77,6 +73,14 @@ class Client:
             auth = getattr(self, auth_name + '_auth_key')
             headers.update({'authorization': 'Basic %s' % auth})
         return headers
+
+    def _make_request(self, url, method, data=None, auth=None):
+        headers = self._get_headers(auth)
+
+        method = getattr(requests, method)
+        response = method(url, data=data, headers=headers)
+        return response
+
     #
     # API methods
     #
@@ -86,50 +90,33 @@ class Client:
         data = {'contents': contents,
                 'app_id': self.app_id}
         data.update(kwargs)
-        headers = self._get_headers('app')
+        return self._make_request(url, 'post', data=data, auth='app')
 
-        response = requests.post(data, url, headers=headers)
-        return response
-
-    def cancel_notification(self, id, app_id):
+    def cancel_notification(self, notification_id):
         _url = 'notifications'
-        url = self.OS_URL + _url + '/' + id + '?app_id=' + app_id
-        headers = self._get_headers('app')
-
-        response = requests.delete(url, headers=headers)
-        return response
+        url = (self.OS_URL + _url + '/' + notification_id
+               + '?app_id=' + self.app_id)
+        return self._make_request(url, 'delete', auth='app')
 
     def view_apps(self):
         _url = 'apps'
         url = self.OS_URL + _url
-        headers = self._get_headers('user')
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get', auth='user')
         
     def view_an_app(self, app_id):
         _url = 'apps'
         url = self.OS_URL + _url + '/' + app_id
-        headers = self._get_headers('user')
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get', auth='user')
 
     def create_an_app(self, **kwargs):
         _url = 'apps'
         url = self.OS_URL + _url
-        headers = self._get_headers('user')
-
-        response = requests.post(url, data=kwargs, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=kwargs, auth='user')
         
-    def update_an_app(self, app_id, **kwargs):
+    def update_an_app(self, **kwargs):
         _url = 'apps'
-        url = self.OS_URL + _url + '/' + app_id
-        headers = self._get_headers('user')
-
-        response = requests.put(url, data=kwargs, headers=headers)
-        return response
+        url = self.OS_URL + _url + '/' + self.app_id
+        return self._make_request(url, 'put', data=kwargs, auth='user')
 
     def view_devices(self, limit=None, offset=None):
         _url = 'players'
@@ -138,79 +125,52 @@ class Client:
             url += '&limit=' + str(limit)
         if offset is not None:
             url += '&offset=' + str(offset)
-        headers = self._get_headers('app')
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get', auth='app')
 
     def view_device(self, device_id):
         _url = 'players'
         url = self.OS_URL + _url + '/' + device_id + '?app_id=' + self.app_id
-        headers = self._get_headers()
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get')
 
     def add_a_device(self, **kwargs):
         _url = 'players'
         url = self.OS_URL + _url
         kwargs.update({'app_id': self.app_id})
-        headers = self._get_headers()
-
-        response = requests.post(url, data=kwargs, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=kwargs)
 
     def edit_device(self, device_id, **kwargs):
         _url = 'players'
         url = self.OS_URL + _url + '/' + device_id
         kwargs.update({'app_id': self.app_id})
-        headers = self._get_headers()
-
-        response = requests.put(url, data=kwargs, headers=headers)
-        return response
+        return self._make_request(url, 'put', data=kwargs)
 
     def new_session(self, device_id, **kwargs):
         _url = 'players'
         url = self.OS_URL + _url + '/' + device_id + '/on_session'
-        headers = self._get_headers()
-
-        response = requests.post(url, data=kwargs, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=kwargs)
 
     def new_purchase(self, device_id, **kwargs):
         _url = 'players'
         url = self.OS_URL + _url + '/' + device_id + '/on_purchase'
-        headers = self._get_headers()
-
-        response = requests.post(url, data=kwargs, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=kwargs)
 
     def increment_session_length(self, device_id, active_time):
         _url = 'players'
         url = self.OS_URL + _url + '/' + device_id + '/on_focus'
         data = {'state': 'ping', 'active_time': active_time}
-        headers = self._get_headers()
-
-        response = requests.post(url, data=data, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=data)
 
     def csv_export(self, **kwargs):
         _url = 'players'
         url = self.OS_URL + _url + '/csv_export' + '?app_id=' + self.app_id
         data = {'extra_fields': list(kwargs.keys())}
-        headers = self._get_headers('app')
-
-        response = requests.post(url, data=data, headers=headers)
-        return response
+        return self._make_request(url, 'post', data=data, auth='app')
 
     def view_notification(self, notification_id):
         _url = 'notifications'
         url = (self.OS_URL + _url + '/' + notification_id
                + '?app_id=' + self.app_id)
-        headers = self._get_headers('user')
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get', auth='user')
 
     def view_notifications(self, limit=None, offset=None):
         _url = 'notifications'
@@ -219,20 +179,14 @@ class Client:
             url += '&limit=' + str(limit)
         if offset is not None:
             url += '&offset=' + str(offset)
-        headers = self._get_headers('app')
-
-        response = requests.get(url, headers=headers)
-        return response
+        return self._make_request(url, 'get', auth='app')
 
     def track_open(self, notification_id):
         _url = 'notifications'
         url = self.OS_URL + _url + '/' + notification_id
         data = {'app_id': self.app_id,
                 'opened': True}
-        headers = self._get_headers()
-
-        response = requests.put(url, data=data, headers=headers)
-        return response
+        return self._make_request(url, 'put', data=data)
 
 
 client = Client()
