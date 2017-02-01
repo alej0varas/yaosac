@@ -79,18 +79,18 @@ class ClientInternalTestCase(unittest.TestCase):
     def test_get_header(self):
         result = yaosac.client._get_headers()
 
-        self.assertIn('content-type', result)
+        self.assertIn('Content-Type', result)
 
         value = 'a-value-test'
         yaosac.client.test_auth_key = value
 
         result = yaosac.client._get_headers('test')
         
-        self.assertIn(value, result['authorization'])
+        self.assertIn(value, result['Authorization'])
 
         result = yaosac.client._get_headers('app')
         
-        self.assertIn(APP_AUTH_KEY, result['authorization'])
+        self.assertIn(APP_AUTH_KEY, result['Authorization'])
 
     def test_make_request(self):
         url = 'bleh'
@@ -105,7 +105,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 yaosac.client._make_request(url, method)
 
                 mock_method.assert_called_once_with(
-                    url, data=None, headers=mock_headers)
+                    url, json=None, headers=mock_headers)
 
                 # With data
                 mock_method.reset_mock()
@@ -113,7 +113,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 yaosac.client._make_request(url, method, data={})
 
                 mock_method.assert_called_once_with(
-                    url, data={}, headers=mock_headers)
+                    url, json={}, headers=mock_headers)
 
                 # With auth
                 mock_method.reset_mock()
@@ -121,7 +121,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 auth = 'auth'
                 yaosac.client._make_request(url, method, auth=auth)
                 mock_method.assert_called_once_with(
-                    url, data=None, headers=mock_headers)
+                    url, json=None, headers=mock_headers)
                 mock_get_headers.assert_called_once_with(auth)
 
 
@@ -151,12 +151,25 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         response = yaosac.client.create_notification(contents, **kwargs)
 
         self.assertEqual(requests.post.call_count, 1)
-        self.assertIn('app_id', requests.post.call_args[1]['data'])
-        self.assertIn('contents', requests.post.call_args[1]['data'])
-        self.assertIn('what', requests.post.call_args[1]['data'])
+        self.assertIn('app_id', requests.post.call_args[1]['json'])
+        self.assertIn('contents', requests.post.call_args[1]['json'])
+        self.assertIn('what', requests.post.call_args[1]['json'])
         self.assertIn(APP_AUTH_KEY,
-                      requests.post.call_args[1]['headers']['authorization'])
+                      requests.post.call_args[1]['headers']['Authorization'])
         self.assertIsNotNone(response)
+
+    def test_create_notification__content_is_string(self):
+        # if contents is just a string, not dict, it's set as the
+        # default 'en' language inside a dict.
+        kwargs = {'what': 'ever'}
+        contents = 'Bla bla'
+
+        response = yaosac.client.create_notification(contents, **kwargs)
+
+        self.assertIn('en', requests.post.call_args[1]['json']['contents'])
+        self.assertIn(contents,
+                      requests.post.call_args[1]['json']['contents']['en'])
+
 
     def test_cancel_notification(self):
         notification_id = 'notification-id'
@@ -168,7 +181,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn(APP_ID, requests.delete.call_args[0][0])
         self.assertIn('headers', requests.delete.call_args[1])
         self.assertIn(APP_AUTH_KEY,
-                      requests.delete.call_args[1]['headers']['authorization'])
+                      requests.delete.call_args[1]['headers']['Authorization'])
         self.assertIsNotNone(response)
 
     def test_view_apps(self):
@@ -176,7 +189,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
 
         self.assertIn('apps', requests.get.call_args[0][0])
         self.assertIn(USER_AUTH_KEY,
-                      requests.get.call_args[1]['headers']['authorization'])
+                      requests.get.call_args[1]['headers']['Authorization'])
         self.assertIsNotNone(response)
 
     def test_view_an_app(self):
@@ -186,7 +199,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('apps', requests.get.call_args[0][0])
         self.assertIn(app_id, requests.get.call_args[0][0])
         self.assertIn(USER_AUTH_KEY,
-                      requests.get.call_args[1]['headers']['authorization'])
+                      requests.get.call_args[1]['headers']['Authorization'])
         self.assertIsNotNone(response)
 
     def test_create_an_app(self):
@@ -194,9 +207,9 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         response = yaosac.client.create_an_app(**payload)
 
         self.assertIn('apps', requests.post.call_args[0][0])
-        self.assertEqual(payload, requests.post.call_args[1]['data'])
+        self.assertEqual(payload, requests.post.call_args[1]['json'])
         self.assertIn(USER_AUTH_KEY,
-                      requests.post.call_args[1]['headers']['authorization'])
+                      requests.post.call_args[1]['headers']['Authorization'])
 
     def test_update_an_app(self):
         payload = {'what': 'ever'}
@@ -204,9 +217,9 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
 
         self.assertIn(APP_ID, requests.put.call_args[0][0])
         self.assertIn('apps', requests.put.call_args[0][0])
-        self.assertEqual(payload, requests.put.call_args[1]['data'])
+        self.assertEqual(payload, requests.put.call_args[1]['json'])
         self.assertIn(USER_AUTH_KEY,
-                      requests.put.call_args[1]['headers']['authorization'])
+                      requests.put.call_args[1]['headers']['Authorization'])
 
     def test_view_devices(self):
         response = yaosac.client.view_devices()
@@ -215,7 +228,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('app_id=', requests.get.call_args[0][0])
         self.assertIn(APP_ID, requests.get.call_args[0][0])
         self.assertIn(APP_AUTH_KEY,
-                      requests.get.call_args[1]['headers']['authorization'])
+                      requests.get.call_args[1]['headers']['Authorization'])
 
         # with limit
         requests.get.reset_mock()
@@ -241,20 +254,20 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn(device_id, requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
         self.assertIn(APP_ID, requests.get.call_args[0][0])
-        self.assertNotIn('authorization', requests.get.call_args[1]['headers'])
+        self.assertNotIn('Authorization', requests.get.call_args[1]['headers'])
 
     def test_add_a_device(self):
         payload = {'read': 'the', 'docs': 1}
         response = yaosac.client.add_a_device(**payload)
 
         self.assertIn('players', requests.post.call_args[0][0])
-        self.assertIn('app_id', requests.post.call_args[1]['data'])
+        self.assertIn('app_id', requests.post.call_args[1]['json'])
         self.assertEqual(APP_ID,
-                         requests.post.call_args[1]['data']['app_id'])
+                         requests.post.call_args[1]['json']['app_id'])
         for key, value in payload.items():
-            self.assertIn(key, requests.post.call_args[1]['data'])
-            self.assertEqual(value, requests.post.call_args[1]['data'][key])
-        self.assertNotIn('authorization', requests.post.call_args[1]['headers'])
+            self.assertIn(key, requests.post.call_args[1]['json'])
+            self.assertEqual(value, requests.post.call_args[1]['json'][key])
+        self.assertNotIn('Authorization', requests.post.call_args[1]['headers'])
 
     def test_edit_device(self):
         device_id = 'my-phone'
@@ -263,13 +276,13 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
 
         self.assertIn('players', requests.put.call_args[0][0])
         self.assertIn(device_id, requests.put.call_args[0][0])
-        self.assertIn('app_id', requests.put.call_args[1]['data'])
+        self.assertIn('app_id', requests.put.call_args[1]['json'])
         self.assertEqual(APP_ID,
-                         requests.put.call_args[1]['data']['app_id'])
+                         requests.put.call_args[1]['json']['app_id'])
         for key, value in payload.items():
-            self.assertIn(key, requests.put.call_args[1]['data'])
-            self.assertEqual(value, requests.put.call_args[1]['data'][key])
-        self.assertNotIn('authorization', requests.put.call_args[1]['headers'])
+            self.assertIn(key, requests.put.call_args[1]['json'])
+            self.assertEqual(value, requests.put.call_args[1]['json'][key])
+        self.assertNotIn('Authorization', requests.put.call_args[1]['headers'])
 
     def test_edit_device(self):
         device_id = 'my-phone'
@@ -279,8 +292,8 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_session', requests.post.call_args[0][0])
         self.assertIn(device_id, requests.post.call_args[0][0])
-        self.assertEqual(payload, requests.post.call_args[1]['data'])
-        self.assertNotIn('authorization', requests.post.call_args[1]['headers'])
+        self.assertEqual(payload, requests.post.call_args[1]['json'])
+        self.assertNotIn('Authorization', requests.post.call_args[1]['headers'])
 
     def test_new_purchase(self):
         device_id = 'my-phone'
@@ -290,8 +303,8 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_purchase', requests.post.call_args[0][0])
         self.assertIn(device_id, requests.post.call_args[0][0])
-        self.assertEqual(payload, requests.post.call_args[1]['data'])
-        self.assertNotIn('authorization', requests.post.call_args[1]['headers'])
+        self.assertEqual(payload, requests.post.call_args[1]['json'])
+        self.assertNotIn('Authorization', requests.post.call_args[1]['headers'])
 
     def test_increment_session_length(self):
         device_id = 'my-phone'
@@ -303,8 +316,8 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('players', requests.post.call_args[0][0])
         self.assertIn('on_focus', requests.post.call_args[0][0])
         self.assertIn(device_id, requests.post.call_args[0][0])
-        self.assertEqual(expected_payload, requests.post.call_args[1]['data'])
-        self.assertNotIn('authorization', requests.post.call_args[1]['headers'])
+        self.assertEqual(expected_payload, requests.post.call_args[1]['json'])
+        self.assertNotIn('Authorization', requests.post.call_args[1]['headers'])
 
     def test_csv_export(self):
         response = yaosac.client.csv_export()
@@ -314,7 +327,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('app_id=', requests.post.call_args[0][0])
         self.assertIn(APP_ID, requests.post.call_args[0][0])
         self.assertIn(APP_AUTH_KEY,
-                      requests.post.call_args[1]['headers']['authorization'])
+                      requests.post.call_args[1]['headers']['Authorization'])
 
 
         # Extra fields
@@ -323,20 +336,20 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         response = yaosac.client.csv_export(location=True)
 
         self.assertIn('location',
-                      requests.post.call_args[1]['data']['extra_fields'])
+                      requests.post.call_args[1]['json']['extra_fields'])
         # country
         requests.post.reset_mock()
         response = yaosac.client.csv_export(country=True)
 
         self.assertIn('country',
-                      requests.post.call_args[1]['data']['extra_fields'])
+                      requests.post.call_args[1]['json']['extra_fields'])
 
         # rooted
         requests.post.reset_mock()
         response = yaosac.client.csv_export(rooted=True)
 
         self.assertIn('rooted',
-                      requests.post.call_args[1]['data']['extra_fields'])
+                      requests.post.call_args[1]['json']['extra_fields'])
 
     def test_view_notification(self):
         notification_id = 'an-push'
@@ -347,7 +360,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('app_id=', requests.get.call_args[0][0])
         self.assertIn(APP_ID, requests.get.call_args[0][0])
         self.assertIn(USER_AUTH_KEY,
-                      requests.get.call_args[1]['headers']['authorization'])
+                      requests.get.call_args[1]['headers']['Authorization'])
 
     def test_view_notifications(self):
         response = yaosac.client.view_notifications()
@@ -356,7 +369,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn('app_id=', requests.get.call_args[0][0])
         self.assertIn(APP_ID, requests.get.call_args[0][0])
         self.assertIn(APP_AUTH_KEY,
-                      requests.get.call_args[1]['headers']['authorization'])
+                      requests.get.call_args[1]['headers']['Authorization'])
 
         # with limit
         requests.get.reset_mock()
@@ -380,8 +393,8 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
 
         self.assertIn('notifications', requests.put.call_args[0][0])
         self.assertIn(notification_id, requests.put.call_args[0][0])
-        self.assertIn('app_id', requests.put.call_args[1]['data'])
-        self.assertIn(APP_ID, requests.put.call_args[1]['data']['app_id'])
-        self.assertIn('opened', requests.put.call_args[1]['data'])
-        self.assertTrue(requests.put.call_args[1]['data']['opened'])
-        self.assertNotIn('authorization', requests.put.call_args[1]['headers'])
+        self.assertIn('app_id', requests.put.call_args[1]['json'])
+        self.assertIn(APP_ID, requests.put.call_args[1]['json']['app_id'])
+        self.assertIn('opened', requests.put.call_args[1]['json'])
+        self.assertTrue(requests.put.call_args[1]['json']['opened'])
+        self.assertNotIn('Authorization', requests.put.call_args[1]['headers'])

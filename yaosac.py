@@ -65,17 +65,17 @@ class Client:
         setattr(self, '_user_auth_key', value)
 
     def _get_headers(self, auth_name=None):
-        headers = {'content-type': 'application/json'}
+        headers = {'Content-Type': 'application/json'}
         if auth_name is not None:
             auth = getattr(self, auth_name + '_auth_key')
-            headers.update({'authorization': 'Basic %s' % auth})
+            headers.update({'Authorization': 'Basic %s' % auth})
         return headers
 
-    def _make_request(self, url, method, data=None, auth=None):
+    def _make_request(self, url, method_name, data=None, auth=None):
         headers = self._get_headers(auth)
+        method = getattr(requests, method_name)
 
-        method = getattr(requests, method)
-        response = method(url, data=data, headers=headers)
+        response = method(url, json=data, headers=headers)
         return response
 
     #
@@ -84,6 +84,9 @@ class Client:
     def create_notification(self, contents, **kwargs):
         _url = 'notifications'
         url = self.OS_URL + _url
+        if isinstance(contents, str):
+            # Set the string as the required default language
+            contents = {'en': contents}
         data = {'contents': contents,
                 'app_id': self.app_id}
         data.update(kwargs)
@@ -189,4 +192,4 @@ class Client:
 client = Client()
 
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
