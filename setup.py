@@ -12,6 +12,7 @@ setup(
     author_email="alej0varas@gmail.com",
     py_modules=['yaosac', ],
     include_package_data=True,
+    install_requires=['requests', ],
     license='GNU Library or Lesser General Public License (LGPL)',
     description="Yet another OneSignal API Client",
     long_description=README,
