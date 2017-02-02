@@ -359,7 +359,7 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn(notification_id, requests.get.call_args[0][0])
         self.assertIn('app_id=', requests.get.call_args[0][0])
         self.assertIn(APP_ID, requests.get.call_args[0][0])
-        self.assertIn(USER_AUTH_KEY,
+        self.assertIn(APP_AUTH_KEY,
                       requests.get.call_args[1]['headers']['Authorization'])
 
     def test_view_notifications(self):

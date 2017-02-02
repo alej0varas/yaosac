@@ -170,7 +170,7 @@ class Client:
         _url = 'notifications'
         url = (self.OS_URL + _url + '/' + notification_id
                + '?app_id=' + self.app_id)
-        return self._make_request(url, 'get', auth='user')
+        return self._make_request(url, 'get', auth='app')
 
     def view_notifications(self, limit=None, offset=None):
         _url = 'notifications'

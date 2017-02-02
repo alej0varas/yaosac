@@ -7,7 +7,7 @@ README = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read()
 
 setup(
     name="yaosac",
-    version='0.0.4',
+    version='0.0.5',
     author="Alexandre Varas",
     author_email="alej0varas@gmail.com",
     py_modules=['yaosac', ],
