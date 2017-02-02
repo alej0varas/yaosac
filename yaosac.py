@@ -167,6 +167,7 @@ class Client:
         return self._make_request(url, 'post', data=data, auth='app')
 
     def view_notification(self, notification_id):
+        assert notification_id, "`notification_id` is not a valid id"
         _url = 'notifications'
         url = (self.OS_URL + _url + '/' + notification_id
                + '?app_id=' + self.app_id)

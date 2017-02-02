@@ -362,6 +362,11 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
         self.assertIn(APP_AUTH_KEY,
                       requests.get.call_args[1]['headers']['Authorization'])
 
+        # Raise exception when notification_id is False
+        notification_id = ''
+        with self.assertRaises(AssertionError) as context:
+            response = yaosac.client.view_notification(notification_id)
+
     def test_view_notifications(self):
         response = yaosac.client.view_notifications()
 
