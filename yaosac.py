@@ -81,14 +81,17 @@ class Client:
     #
     # API methods
     #
-    def create_notification(self, contents, **kwargs):
+    def create_notification(self, contents=None, template_id=None, **kwargs):
         _url = 'notifications'
         url = self.OS_URL + _url
-        if isinstance(contents, str):
-            # Set the string as the required default language
-            contents = {'en': contents}
-        data = {'contents': contents,
-                'app_id': self.app_id}
+        assert contents or template_id, ('A required field is missing '
+                                         '`contents` or `template_id`')
+        data = {'app_id': self.app_id, 'template_id': template_id}
+        if contents is not None:
+            if isinstance(contents, str):
+                # Set the string as the required default language
+                contents = {'en': contents}
+            data.update({'contents': contents})
         data.update(kwargs)
         return self._make_request(url, 'post', data=data, auth='app')
 

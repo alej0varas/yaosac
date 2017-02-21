@@ -158,6 +158,22 @@ class ClientAPIMEthodsTestCase(unittest.TestCase):
                       requests.post.call_args[1]['headers']['Authorization'])
         self.assertIsNotNone(response)
 
+    def test_create_notification__with__template_id(self):
+        kwargs = {'what': 'ever'}
+
+        response = yaosac.client.create_notification(template_id='an-id',
+                                                     **kwargs)
+
+        self.assertNotIn('contents', requests.post.call_args[1]['json'])
+        self.assertIn('template_id', requests.post.call_args[1]['json'])
+
+    def test_create_notification__without__contents_or_template_id(self):
+        kwargs = {'what': 'ever'}
+
+        with self.assertRaises(AssertionError):
+            response = yaosac.client.create_notification(**kwargs)
+
+
     def test_create_notification__content_is_string(self):
         # if contents is just a string, not dict, it's set as the
         # default 'en' language inside a dict.
