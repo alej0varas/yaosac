@@ -5,3 +5,4 @@ yaosac.egg-info
 /.eggs/
 *.pyc
 /build/
+/README.html

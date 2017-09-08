@@ -8,19 +8,7 @@ class ImproperlyConfigured(Exception):
 
 
 class Client:
-    """Client methods are a map of the server API end-points[0] where the
-    method name is the end-point name in lower case and spaces
-    replaced by underscores. Depending on the methods you call you
-    will need an User Auth Key or an App Auth Key or an App
-    Id[1]. They can be set as environment variables
-    'OS_USER_AUTH_KEY', 'OS_APP_AUTH_KEY' and 'OS_APP_ID' or assigned
-    to the client via `app_auth_key`, `user_auth_key` and `app_id`
-    attributes.
-
-    0 - https://documentation.onesignal.com/reference
-    1 - https://documentation.onesignal.com/docs/accounts-and-keys
-
-    """
+    """Client methods are a map of the server API end-points"""
 
     OS_URL = 'https://onesignal.com/api/v1/'
 
