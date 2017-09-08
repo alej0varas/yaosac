@@ -94,6 +94,7 @@ class ClientInternalTestCase(unittest.TestCase):
 
     def test_make_request(self):
         url = 'bleh'
+        expected_url = yaosac.client.OS_URL + url
         method = 'put'
 
         with mock.patch('requests.' + method) as mock_method:
@@ -105,7 +106,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 yaosac.client._make_request(url, method)
 
                 mock_method.assert_called_once_with(
-                    url, json=None, headers=mock_headers)
+                    expected_url, json=None, headers=mock_headers)
 
                 # With data
                 mock_method.reset_mock()
@@ -113,7 +114,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 yaosac.client._make_request(url, method, data={})
 
                 mock_method.assert_called_once_with(
-                    url, json={}, headers=mock_headers)
+                    expected_url, json={}, headers=mock_headers)
 
                 # With auth
                 mock_method.reset_mock()
@@ -121,7 +122,7 @@ class ClientInternalTestCase(unittest.TestCase):
                 auth = 'auth'
                 yaosac.client._make_request(url, method, auth=auth)
                 mock_method.assert_called_once_with(
-                    url, json=None, headers=mock_headers)
+                    expected_url, json=None, headers=mock_headers)
                 mock_get_headers.assert_called_once_with(auth)
 
 
