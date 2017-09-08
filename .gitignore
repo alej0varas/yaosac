@@ -4,3 +4,4 @@ yaosac.egg-info
 /dist/
 /.eggs/
 *.pyc
+/build/
